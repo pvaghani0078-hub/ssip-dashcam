@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Safety Guard - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 h-screen flex items-center justify-center font-sans antialiased bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-700 relative overflow-hidden">
+        
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+
+        <div class="text-center mb-8 mt-4">
+            <div class="bg-gray-900 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-700 shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                <i class="fa-solid fa-shield-halved text-cyan-400 text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white tracking-wide">AI Safety Guard</h2>
+            <p class="text-gray-400 text-sm mt-1">Authorized Access Only</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded mb-6 text-sm text-center">
+              <i class="fa-solid fa-triangle-exclamation mr-2"></i>{{ messages[0] }}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form action="/login" method="POST" class="space-y-6">
+            
+            <div>
+                <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider" for="username">
+                    Username
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-user text-gray-500"></i>
+                    </div>
+                    <input class="bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full pl-10 p-3 transition-colors duration-200 outline-none" 
+                           id="username" name="username" type="text" placeholder="Enter username" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider" for="password">
+                    Password
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-lock text-gray-500"></i>
+                    </div>
+                    <input class="bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full pl-10 p-3 transition-colors duration-200 outline-none" 
+                           id="password" name="password" type="password" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-opacity-50 flex justify-center items-center" 
+                        type="submit">
+                    <i class="fa-solid fa-right-to-bracket mr-2"></i> SYSTEM LOGIN
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-8 text-center">
+            <p class="text-xs text-gray-500">Raspberry Pi 5 Telemetry Node • v2.0</p>
+        </div>
+    </div>
+
+</body>
+</html>

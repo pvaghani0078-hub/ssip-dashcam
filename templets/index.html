@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Safety Guard - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* Custom dark theme colors based on your video */
+        body { background-color: #0b101e; color: #e2e8f0; }
+        .glass-panel { background: rgba(17, 24, 39, 0.8); border: 1px solid #1f2937; backdrop-filter: blur(10px); }
+        .neon-text { text-shadow: 0 0 10px rgba(6, 182, 212, 0.8); }
+        /* Custom scrollbar for logs */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col font-sans p-4">
+<audio id="emergency-sound" src="https://assets.mixkit.co/active_storage/sfx/995/995-preview.mp3" preload="auto"></audio>
+
+    <div id="alert-modal" class="hidden fixed inset-0 bg-red-900 bg-opacity-95 z-50 flex flex-col items-center justify-center backdrop-blur-md transition-all duration-300">
+        <i class="fa-solid fa-triangle-exclamation text-9xl text-white animate-ping mb-8"></i>
+        <h1 class="text-6xl font-black text-white mb-4 tracking-widest text-center shadow-black drop-shadow-2xl">CRITICAL ALERT</h1>
+        <div class="bg-black border-4 border-red-500 px-8 py-4 rounded-xl shadow-[0_0_30px_rgba(239,68,68,0.8)]">
+            <p id="alert-reason" class="text-3xl text-red-400 font-mono font-bold tracking-widest uppercase">REASON: UNKNOWN</p>
+        </div>
+        <button onclick="dismissAlert()" class="mt-12 bg-white text-red-900 font-extrabold py-4 px-10 rounded-full text-xl hover:bg-gray-200 transition shadow-xl transform hover:scale-105">
+            MUTE & DISMISS ALARM
+        </button>
+    </div>
+    <header class="flex justify-between items-center mb-4 glass-panel p-4 rounded-xl shadow-lg">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-shield-halved text-cyan-400 text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-widest text-gray-200">AI AUTOMOTIVE SAFETY SYSTEM</h1>
+        </div>
+        <div class="flex items-center space-x-6">
+            <div class="flex items-center text-green-400 text-sm font-bold tracking-widest">
+                <span class="animate-pulse h-2 w-2 bg-green-400 rounded-full mr-2"></span> OPERATIONAL
+            </div>
+            <div id="clock" class="text-gray-400 font-mono text-lg">00:00:00</div>
+            <a href="/logout" class="text-red-400 hover:text-red-300 transition"><i class="fa-solid fa-power-off"></i></a>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow overflow-hidden">
+        
+        <div class="lg:col-span-2 flex flex-col gap-4">
+            
+            <div class="glass-panel rounded-xl flex-grow flex flex-col overflow-hidden relative border-t-2 border-t-cyan-500">
+                <div class="p-3 bg-gray-900 border-b border-gray-800 flex justify-between">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest"><i class="fa-solid fa-video text-cyan-500 mr-2"></i> Live Driver Feed</span>
+                    <span class="text-xs font-bold text-red-500 animate-pulse">LIVE &bull; REC</span>
+                </div>
+                <div class="flex-grow bg-black relative">
+                    <img src="http://192.0.0.4:8080/video" class="w-full h-full object-cover opacity-80" alt="Camera Offline">
+                    
+                    <div class="absolute top-4 left-4 text-cyan-400 font-mono text-xs opacity-70">CAM_01 // DRIVER_INT</div>
+                    <div class="absolute bottom-4 right-4 text-cyan-400 font-mono text-xs opacity-70">[ AI VISION ACTIVE ]</div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-xl h-64 flex flex-col overflow-hidden">
+                <div class="p-3 bg-gray-900 border-b border-gray-800">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest"><i class="fa-solid fa-map-location-dot text-cyan-500 mr-2"></i> Real-Time GPS Tracking</span>
+                </div>
+                <div id="map" class="flex-grow z-0"></div> </div>
+        </div>
+
+        <div class="flex flex-col gap-4 overflow-y-auto">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glass-panel p-4 rounded-xl text-center border-b-2 border-b-cyan-500">
+                    <p class="text-xs text-gray-400 font-bold uppercase mb-1">Current Speed</p>
+                    <div class="text-4xl font-bold text-cyan-400 neon-text"><span id="speed-val">0</span> <span class="text-sm text-gray-500">KM/H</span></div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl text-center border-b-2 border-b-blue-500">
+                    <p class="text-xs text-gray-400 font-bold uppercase mb-1">Heading</p>
+                    <div class="text-2xl font-bold text-blue-400 mt-2"><i class="fa-solid fa-location-arrow mr-2"></i><span id="heading-val">N/A</span></div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-xl">
+                <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-3">
+                    <h3 class="text-sm font-bold text-gray-300 uppercase"><i class="fa-solid fa-eye text-cyan-500 mr-2"></i> Driver Focus</h3>
+                    <span id="focus-badge" class="bg-green-900 text-green-400 text-xs px-2 py-1 rounded border border-green-700">OPTIMAL</span>
+                </div>
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-400">Drowsiness:</span>
+                    <span id="drowsy-status" class="font-bold text-gray-200">NONE</span>
+                </div>
+                <div class="flex justify-between text-sm mb-4">
+                    <span class="text-gray-400">Phone Usage:</span>
+                    <span id="phone-status" class="font-bold text-gray-200">NONE</span>
+                </div>
+                
+                <div class="bg-gray-900 rounded border border-gray-700 p-2 h-32 overflow-y-auto font-mono text-xs">
+                    <ul id="incident-log" class="space-y-1">
+                        <li class="text-gray-500">System Initialized. Awaiting events...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-xl">
+                <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-3">
+                    <h3 class="text-sm font-bold text-gray-300 uppercase"><i class="fa-solid fa-wind text-cyan-500 mr-2"></i> Cabin Air</h3>
+                    <span id="alcohol-badge" class="bg-green-900 text-green-400 text-xs px-2 py-1 rounded border border-green-700">CLEAN</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-400">Alcohol Level (BAC):</span>
+                    <span id="alcohol-val" class="font-bold text-green-400">0.000</span>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-4">
+                <button onclick="triggerEmergency()" class="w-full bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 text-white font-bold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.5)] border border-red-400 transform transition hover:scale-[1.02] flex flex-col items-center justify-center group">
+                    <span class="text-lg tracking-widest mb-1"><i class="fa-solid fa-triangle-exclamation animate-ping absolute opacity-75"></i><i class="fa-solid fa-triangle-exclamation mr-2 relative"></i> EMERGENCY OVERRIDE</span>
+                    <span class="text-xs text-red-200 font-normal opacity-80 group-hover:opacity-100">ALERT POLICE & HOSPITAL • SOUND ALARM</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CLOCK ---
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-US', { hour12: false });
+        }, 1000);
+
+        // --- 2. GPS MAP INITIALIZATION ---
+        // Coordinates for Ahmedabad as default
+        let map = L.map('map').setView([23.0225, 72.5714], 15);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        
+        // Custom car marker
+        let carMarker = L.marker([23.0225, 72.5714]).addTo(map);
+
+        // --- 3. INCIDENT LOGGING LOGIC ---
+        let incidentActive = false;
+        let incidentStartTime = null;
+        let currentIncidentType = "";
+
+        function logIncident(type, isStarting) {
+            const logList = document.getElementById('incident-log');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+
+            if (isStarting && !incidentActive) {
+                incidentActive = true;
+                incidentStartTime = now;
+                currentIncidentType = type;
+                
+                const li = document.createElement('li');
+                li.className = "text-yellow-400";
+                li.innerText = `[${timeStr}] ALARM: ${type} Detected!`;
+                logList.prepend(li); // Add to top of list
+            } 
+            else if (!isStarting && incidentActive) {
+                const duration = Math.round((now - incidentStartTime) / 1000); // in seconds
+                
+                const li = document.createElement('li');
+                li.className = "text-green-400";
+                li.innerText = `[${timeStr}] RESOLVED: ${currentIncidentType} (Duration: ${duration}s)`;
+                logList.prepend(li);
+                
+                incidentActive = false;
+                incidentStartTime = null;
+                currentIncidentType = "";
+            }
+        }
+
+        // --- 4. FETCH SENSOR DATA ---
+        function updateDashboard() {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    // Update Speed & Heading
+                    document.getElementById('speed-val').innerText = data.speed;
+                    document.getElementById('heading-val').innerText = data.heading;
+
+                    // Update GPS Map
+                    const newLatLng = new L.LatLng(data.lat, data.lon);
+                    carMarker.setLatLng(newLatLng);
+                    map.panTo(newLatLng);
+
+                    // Update Driver Focus
+                    const dStatus = document.getElementById('drowsy-status');
+                    const pStatus = document.getElementById('phone-status');
+                    const fBadge = document.getElementById('focus-badge');
+
+                    if (data.drowsy || data.phone_usage) {
+                        fBadge.className = "bg-red-900 text-red-400 text-xs px-2 py-1 rounded border border-red-700 animate-pulse";
+                        fBadge.innerText = "DANGER";
+                        
+                        if (data.drowsy) {
+                            dStatus.innerText = "DETECTED"; dStatus.className = "font-bold text-red-500 animate-pulse";
+                            logIncident("Drowsiness", true);
+                        }
+                        if (data.phone_usage) {
+                            pStatus.innerText = "DETECTED"; pStatus.className = "font-bold text-yellow-500 animate-pulse";
+                            logIncident("Phone Usage", true);
+                        }
+                    } else {
+                        fBadge.className = "bg-green-900 text-green-400 text-xs px-2 py-1 rounded border border-green-700";
+                        fBadge.innerText = "OPTIMAL";
+                        dStatus.innerText = "NONE"; dStatus.className = "font-bold text-gray-200";
+                        pStatus.innerText = "NONE"; pStatus.className = "font-bold text-gray-200";
+                        
+                        if (incidentActive) logIncident("", false); // Stop logging if safe
+                    }
+
+                    // Update Alcohol
+                    const aBadge = document.getElementById('alcohol-badge');
+                    const aVal = document.getElementById('alcohol-val');
+                    aVal.innerText = data.alcohol_level.toFixed(3);
+                    
+                    if (data.alcohol_level > 0.05) {
+                        aBadge.className = "bg-red-900 text-red-400 text-xs px-2 py-1 rounded border border-red-700 animate-pulse";
+                        aBadge.innerText = "WARNING";
+                        aVal.className = "font-bold text-red-500 text-lg";
+                    } else {
+                        aBadge.className = "bg-green-900 text-green-400 text-xs px-2 py-1 rounded border border-green-700";
+                        aBadge.innerText = "CLEAN";
+                        aVal.className = "font-bold text-green-400";
+                    }
+                });
+        }
+        
+
+        // Fetch new data every 1 second
+        setInterval(updateDashboard, 1000);
+
+        // --- 5. EMERGENCY BUTTON FUNCTION ---
+        function triggerEmergency() {
+            if (confirm("🚨 URGENT: Are you sure you want to sound the vehicle alarm and alert Police/Hospitals?")) {
+                
+                fetch('/api/emergency', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    alert("✅ SUCCESS: " + data.message);
+                    // Add to Incident Log
+                    const logList = document.getElementById('incident-log');
+                    const timeStr = new Date().toLocaleTimeString();
+                    const li = document.createElement('li');
+                    li.className = "text-red-500 font-bold";
+                    li.innerText = `[${timeStr}] 🚨 REMOTE SOS TRIGGERED BY FAMILY!`;
+                    logList.prepend(li);
+                })
+                .catch(err => alert("Error triggering emergency. Check connection."));
+            }
+        }
+  // Request permission to send Push Notifications when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+});
+  </script>
+</body>
+</html>

@@ -76,3 +76,4 @@ def trigger_emergency():
     return jsonify({"status": "success", "message": "Emergency Services and Car Alarm Activated!"})
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+#comment
